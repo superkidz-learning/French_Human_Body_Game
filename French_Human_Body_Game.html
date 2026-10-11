@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade 6 French Test: Le Corps et Le Visage</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            background-color: #eef2f7;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            font-size: 22px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 42px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 24px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+        input[type="text"] {
+            font-size: 28px;
+            padding: 12px;
+            width: 60%;
+            border: 3px solid #bdc3c7;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        canvas {
+            background: #f9f9f9;
+            border: 3px dashed #bdc3c7;
+            border-radius: 15px;
+            margin: 15px auto;
+            display: block;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .scoreboard {
+            font-size: 24px;
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .feedback {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 40px;
+        }
+        .success { color: #27ae60; }
+        .error { color: #c0392b; }
+        .thumbs-up {
+            font-size: 60px;
+            animation: bounce 0.5s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🇫🇷 Grade 6 French Test 🇫🇷</h1>
+    <div class="subtitle">Le Visage (Face) & Le Corps Humain (Human Body)</div>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="main-menu">
+        <h2>Select a Game Mode:</h2>
+        <button onclick="startGame('face')">👀 Game 1: The Face (Le Visage)</button><br>
+        <button onclick="startGame('body')">🏃‍♂️ Game 2: The Body (Le Corps)</button>
+    </div>
+
+    <!-- GAMEPLAY SCREEN -->
+    <div id="game-screen" class="hidden">
+        <div class="scoreboard">
+            <span>Score: <strong id="current-score">0</strong></span>
+            <span>Correct: <strong id="correct-count" style="color: green;">0</strong></span>
+            <span>Wrong: <strong id="wrong-count" style="color: red;">0</strong></span>
+        </div>
+
+        <h3 id="mode-instruction" style="color: #e67e22;">Listen to the spoken word and type the spelling!</h3>
+        
+        <button onclick="speakCurrentPrompt()" style="background-color: #e67e22;">🔊 Repeat Audio Prompt</button>
+
+        <!-- Diagram Canvas -->
+        <canvas id="diagramCanvas" width="450" height="300"></canvas>
+
+        <div>
+            <input type="text" id="user-answer" placeholder="Type your spelling here..." autocomplete="off" onkeypress="checkEnter(event)">
+            <br>
+            <button onclick="submitAnswer()">Submit Answer</button>
+        </div>
+
+        <div id="feedback-area" class="feedback"></div>
+        
+        <br>
+        <button onclick="returnToMenu()" style="background-color: #95a5a6; font-size: 18px; padding: 10px 20px;">🏠 Back to Menu</button>
+    </div>
+
+    <!-- SUMMARY SCREEN -->
+    <div id="summary-screen" class="hidden">
+        <h2>🎉 Test Completed! 🎉</h2>
+        <div id="final-stats" style="font-size: 26px; line-height: 1.6; margin: 20px 0;"></div>
+        <button onclick="returnToMenu()">Play Again / Main Menu</button>
+    </div>
+</div>
+
+<script>
+    // Vocabulary datasets for Grade 6
+    const faceData = [
+        { fr: "le front", en: "forehead", x: 225, y: 65, textX: 225, textY: 30 },
+        { fr: "le sourcil", en: "eyebrow", x: 175, y: 95, textX: 70, textY: 60 },
+        { fr: "les yeux", en: "eyes", x: 225, y: 120, textX: 360, textY: 100 },
+        { fr: "les oreilles", en: "ears", x: 140, y: 140, textX: 50, textY: 140 },
+        { fr: "le nez", en: "nose", x: 225, y: 160, textX: 360, textY: 160 },
+        { fr: "la bouche", en: "mouth", x: 225, y: 210, textX: 360, textY: 220 },
+        { fr: "la langue", en: "tongue", x: 225, y: 230, textX: 70, textY: 240 },
+        { fr: "la joue", en: "cheek", x: 270, y: 170, textX: 370, textY: 190 }
+    ];
+
+    const bodyData = [
+        { fr: "la tête", en: "head", x: 225, y: 50, textX: 225, textY: 25 },
+        { fr: "les cheveux", en: "hair", x: 225, y: 30, textX: 70, textY: 30 },
+        { fr: "le visage", en: "face", x: 225, y: 70, textX: 370, textY: 60 },
+        { fr: "le cou", en: "neck", x: 225, y: 115, textX: 370, textY: 115 },
+        { fr: "l'épaule", en: "shoulder", x: 170, y: 135, textX: 60, textY: 135 },
+        { fr: "le bras", en: "arm", x: 140, y: 180, textX: 50, textY: 180 },
+        { fr: "la main", en: "hand", x: 115, y: 240, textX: 40, textY: 250 },
+        { fr: "la jambe", en: "leg", x: 200, y: 220, textX: 370, textY: 220 },
+        { fr: "le pied", en: "foot", x: 190, y: 285, textX: 370, textY: 285 }
+    ];
+
+    let currentDataset = [];
+    let currentIndex = 0;
+    let score = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let testMode = 'en2fr'; // 'en2fr' or 'fr2en'
+    let currentTarget = {};
+
+    const encouragingPhrases = [
+        "Great job!", "Fantastic!", "Super!", "Magnifique!", "You got it!", "Excellent work!", "Awesome!"
+    ];
+
+    function startGame(type) {
+        currentDataset = [...(type === 'face' ? faceData : bodyData)];
+        // Shuffle dataset for variety
+        currentDataset.sort(() => Math.random() - 0.5);
+        
+        currentIndex = 0;
+        score = 0;
+        correctCount = 0;
+        wrongCount = 0;
+
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('summary-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (currentIndex >= currentDataset.length) {
+            showSummary();
+            return;
+        }
+
+        currentTarget = currentDataset[currentIndex];
+        // Randomly pick whether to ask English spelling or French spelling
+        testMode = Math.random() < 0.5 ? 'en2fr' : 'fr2en';
+
+        let instructionText = testMode === 'en2fr' 
+            ? "Listen to the English word and spell the <strong>French</strong> translation:" 
+            : "Listen to the French word and spell the <strong>English</strong> translation:";
+        
+        document.getElementById('mode-instruction').innerHTML = instructionText;
+        document.getElementById('user-answer').value = "";
+        document.getElementById('feedback-area').innerHTML = "";
+
+        drawDiagram(type = (currentDataset === faceData ? 'face' : 'body'), currentTarget);
+        speakCurrentPrompt();
+        document.getElementById('user-answer').focus();
+    }
+
+    function speakCurrentPrompt() {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel(); // Stop any ongoing speech
+
+        let textToSpeak = testMode === 'en2fr' ? currentTarget.en : currentTarget.fr;
+        let langCode = testMode === 'en2fr' ? 'en-US' : 'fr-FR';
+
+        let utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = langCode;
+        utterance.rate = 0.9; // Slightly slower for clarity
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function drawDiagram(type, target) {
+        const canvas = document.getElementById('diagramCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (type === 'face') {
+            // Draw simple cartoon face outline
+            ctx.beginPath();
+            ctx.arc(225, 150, 90, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffe0bd';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#333';
+            ctx.stroke();
+
+            // Eyes
+            ctx.beginPath();
+            ctx.arc(195, 130, 10, 0, Math.PI * 2);
+            ctx.arc(255, 130, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#333';
+            ctx.fill();
+
+            // Smile
+            ctx.beginPath();
+            ctx.arc(225, 150, 40, 0, Math.PI, false);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#333';
+            ctx.stroke();
+        } else {
+            // Draw simple stick figure body
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#333';
+            ctx.fillStyle = '#ffe0bd';
+
+            // Head
+            ctx.beginPath();
+            ctx.arc(225, 50, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Body line
+            ctx.beginPath();
+            ctx.moveTo(225, 75);
+            ctx.lineTo(225, 170);
+            ctx.stroke();
+
+            // Arms
+            ctx.beginPath();
+            ctx.moveTo(225, 100);
+            ctx.lineTo(140, 140);
+            ctx.moveTo(225, 100);
+            ctx.lineTo(310, 140);
+            ctx.stroke();
+
+            // Legs
+            ctx.beginPath();
+            ctx.moveTo(225, 170);
+            ctx.lineTo(190, 260);
+            ctx.moveTo(225, 170);
+            ctx.lineTo(260, 260);
+            ctx.stroke();
+        }
+
+        // Draw Pointer Arrow pointing directly to target.x, target.y
+        ctx.beginPath();
+        ctx.moveTo(target.textX, target.textY);
+        ctx.lineTo(target.x, target.y);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#e74c3c';
+        ctx.stroke();
+
+        // Draw arrowhead circle
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+
+        // Draw text highlight box
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText("🔍 Pointing Here", target.textX - 50, target.textY > 150 ? target.textY + 20 : target.textY - 10);
+    }
+
+    function checkEnter(e) {
+        if (e.key === 'Enter') {
+            submitAnswer();
+        }
+    }
+
+    function submitAnswer() {
+        let userTyped = document.getElementById('user-answer').value.trim().toLowerCase();
+        let expected = testMode === 'en2fr' ? currentTarget.fr.toLowerCase() : currentTarget.en.toLowerCase();
+
+        // Strip articles optionally or evaluate direct match
+        let feedbackArea = document.getElementById('feedback-area');
+
+        if (userTyped === expected) {
+            correctCount++;
+            score += 10;
+            let randomEncouragement = encouragingPhrases[Math.floor(Math.random() * encouragingPhrases.length)];
+            
+            feedbackArea.innerHTML = `<span class="success">${randomEncouragement} <br>Correct! 🎉</span><div class="thumbs-up">👍</div>`;
+            speakPraise(randomEncouragement);
+        } else {
+            wrongCount++;
+            feedbackArea.innerHTML = `<span class="error">Not quite! The correct answer was: <strong>${expected}</strong></span>`;
+        }
+
+        updateScoreboard();
+        currentIndex++;
+
+        // Wait 2.2 seconds before loading the next question
+        setTimeout(() => {
+            nextQuestion();
+        }, 2200);
+    }
+
+    function speakPraise(phrase) {
+        if (!('speechSynthesis' in window)) return;
+        let utterance = new SpeechSynthesisUtterance(phrase);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function updateScoreboard() {
+        document.getElementById('current-score').innerText = score;
+        document.getElementById('correct-count').innerText = correctCount;
+        document.getElementById('wrong-count').innerText = wrongCount;
+    }
+
+    function showSummary() {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('summary-screen').classList.remove('hidden');
+
+        let total = correctCount + wrongCount;
+        let percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+        
+        let grade = 'F';
+        if (percentage >= 90) grade = 'A';
+        else if (percentage >= 80) grade = 'B';
+        else if (percentage >= 70) grade = 'C';
+        else if (percentage >= 60) grade = 'D';
+
+        let statsHtml = `
+            Total Questions: ${total}<br>
+            Correct Answers: <span style="color: green;">${correctCount}</span><br>
+            Wrong Answers: <span style="color: red;">${wrongCount}</span><br>
+            Percentage: <strong>${percentage}%</strong><br>
+            Final Grade: <strong style="font-size: 36px; color: #2980b9;">${grade}</strong>
+        `;
+        document.getElementById('final-stats').innerHTML = statsHtml;
+    }
+
+    function returnToMenu() {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('summary-screen').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
